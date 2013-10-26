@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Demo: Template</title>
+</head>
+<body>
+	<div id="blog-post"></div>
+
+	<script type="text/html" data-template-name="blog/logo">
+        <h1>My Spiffy Blog!</h1>
+    </script>
+
+    <script type="text/html" data-template-name="blog/post_details">
+        <h2>#{title}</h2>
+        <div>#{body}</div>
+    </script>
+
+    <script type="text/html" data-template-name="blog/comments">
+        <li>#{text} - #{name}</li>
+    </script>
+
+    <script type="text/html" data-template-name="blog/post">
+        #{include blog/logo}
+
+        <article>
+            #{render blog/post_details with post}
+
+            <h3>Comments:</h3>
+            <ol>
+                #{render blog/comments foreach comments}
+            </ol>
+        </article>
+    </script>
+
+	<script type="text/javascript" src="../src/template.js"></script>
+	<script type="text/javascript">
+		var data = {
+			post: {
+				title: "A simple demo of a simple template language",
+				body: "<p>It's easy.</p><p>No, really.</p>"
+			},
+			comments: [
+				{
+					text: "Great demo!",
+					name: "John Doe"
+				}, {
+					text: "Meh.",
+					name: "Anonymous Coward"
+				},{
+					text: "Your face was simple.",
+					name: "Anonymous Coward"
+				}
+			]
+		};
+
+		Template.render("blog/post", data, null, function(html, template) {
+			document.getElementById("blog-post").innerHTML = html;
+		});
+
+	</script>
+</body>
+</html>

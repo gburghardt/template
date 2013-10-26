@@ -56,72 +56,124 @@ describe("Template", function() {
 
 	describe("REGEX_INCLUDE", function() {
 
+		beforeEach(function() {
+			var that = this;
+			this.info = {};
+
+			this.includeFunction = function(tag, templateName)  {
+				that.info.tag = tag;
+				that.info.templateName = templateName;
+			};
+		})
+
 		it("should match a template name", function() {
-			var source;
+			'#{include foo}'.replace(Template.REGEX_INCLUDE, this.includeFunction);
 
-			source = '#{include foo}';
-			source.replace(Template.REGEX_INCLUDE, function(tag, templateName) {
-				expect(tag).toEqual('#{include foo}');
-				expect(templateName).toEqual('foo');
-				return "";
-			});
+			expect(this.info.tag).toEqual('#{include foo}');
+			expect(this.info.templateName).toEqual('foo');
+		});
 
-			source = '#{include foo/bar}';
-			source.replace(Template.REGEX_INCLUDE, function(tag, templateName) {
-				expect(tag).toEqual("#{include foo/bar}");
-				expect(templateName).toEqual("foo/bar");
-				return "";
-			});
+		it("should match a template name with forward slashes", function() {
+			'#{include foo/bar}'.replace(Template.REGEX_INCLUDE, this.includeFunction);
+
+			expect(this.info.tag).toEqual("#{include foo/bar}");
+			expect(this.info.templateName).toEqual("foo/bar");
 		});
 
 		it("should match regardless of white space", function() {
-			'#{ include   foo/bar }'.replace(Template.REGEX_INCLUDE, function(tag, templateName) {
-				expect(tag).toEqual('#{ include   foo/bar }');
-				expect(templateName).toEqual("foo/bar");
-				return "";
-			});
+			'#{ include   foo/bar }'.replace(Template.REGEX_INCLUDE, this.includeFunction);
+
+			expect(this.info.tag).toEqual('#{ include   foo/bar }');
+			expect(this.info.templateName).toEqual("foo/bar");
 		});
 
 	});
 
 	describe("REGEX_RENDER", function() {
 
-		it("matches a template name with no data key", function() {
-			"#{render foo}".replace(Template.REGEX_RENDER, function(tag, templateName, withClause, dataKey) {
-				expect(tag).toEqual("#{render foo}");
-				expect(templateName).toEqual("foo");
-				expect(withClause).toEqual("");
-				expect(dataKey).toEqual("");
+		beforeEach(function() {
+			var that = this;
+			this.info = {};
+
+			this.replacerFunction = function(tag, templateName, withClause, dataKey) {
+				that.info.tag = tag;
+				that.info.templateName = templateName;
+				that.info.withClause = withClause;
+				that.info.dataKey = dataKey;
+
 				return "";
-			});
+			};
+		});
+
+		it("matches a template name with no data key", function() {
+			"#{render foo}".replace(Template.REGEX_RENDER, this.replacerFunction);
+
+			expect(this.info.tag).toEqual("#{render foo}");
+			expect(this.info.templateName).toEqual("foo");
+			expect(this.info.withClause).toEqual("");
+			expect(this.info.dataKey).toEqual("");
 		});
 
 		it("matches a template name and a data key", function() {
-			"#{render foo with bar}".replace(Template.REGEX_RENDER, function(tag, templateName, withClause, dataKey) {
-				expect(tag).toEqual("#{render foo with bar}");
-				expect(templateName).toEqual("foo");
-				expect(withClause).toEqual(" with bar");
-				expect(dataKey).toEqual("bar");
-				return "";
-			});
+			"#{render foo with bar}".replace(Template.REGEX_RENDER, this.replacerFunction);
 
-			"#{render foo/bar with baz}".replace(Template.REGEX_RENDER, function(tag, templateName, withClause, dataKey) {
-				expect(tag).toEqual("#{render foo/bar with baz}");
-				expect(templateName).toEqual("foo/bar");
-				expect(withClause).toEqual(" with baz");
-				expect(dataKey).toEqual("baz");
-				return "";
-			});
+			expect(this.info.tag).toEqual("#{render foo with bar}");
+			expect(this.info.templateName).toEqual("foo");
+			expect(this.info.withClause).toEqual(" with bar");
+			expect(this.info.dataKey).toEqual("bar");
+		});
+
+		it("matches a template name with forward slashes", function() {
+			"#{render foo/bar with baz}".replace(Template.REGEX_RENDER, this.replacerFunction);
+
+			expect(this.info.tag).toEqual("#{render foo/bar with baz}");
+			expect(this.info.templateName).toEqual("foo/bar");
+			expect(this.info.withClause).toEqual(" with baz");
+			expect(this.info.dataKey).toEqual("baz");
 		});
 
 		it("matches regardless of white space", function() {
-			"#{  render	foo/bar  	with baz }".replace(Template.REGEX_RENDER, function(tag, templateName, withClause, dataKey) {
-				expect(tag).toEqual("#{  render	foo/bar  	with baz }");
-				expect(templateName).toEqual("foo/bar");
-				expect(withClause).toEqual("  	with baz ");
-				expect(dataKey).toEqual("baz");
-				return "";
-			});
+			"#{  render	foo/bar  	with baz }".replace(Template.REGEX_RENDER, this.replacerFunction);
+
+			expect(this.info.tag).toEqual("#{  render	foo/bar  	with baz }");
+			expect(this.info.templateName).toEqual("foo/bar");
+			expect(this.info.withClause).toEqual("  	with baz ");
+			expect(this.info.dataKey).toEqual("baz");
+		});
+
+	});
+
+	describe("REGEX_FOREACH", function() {
+
+		beforeEach(function() {
+			var that = this;
+
+			this.info = {};
+
+			this.foreachReplacer = function(tag, templateName, keyWithSpace, key) {
+				that.info.tag = tag;
+				that.info.templateName = templateName;
+				that.info.keyWithSpace = keyWithSpace;
+				that.info.key = key;
+			};
+		})
+
+		it("renders the template for each key in the context", function() {
+			var source = "#{render details foreach}"
+			source.replace(Template.REGEX_FOREACH, this.foreachReplacer);
+
+			expect(this.info.tag).toBe(source);
+			expect(this.info.templateName).toBe("details");
+			expect(this.info.key).toBe("");
+		});
+
+		it("renders the template for each key in the context with the specified key", function() {
+			var source = "#{render foo/bar foreach item}";
+			source.replace(Template.REGEX_FOREACH, this.foreachReplacer);
+
+			expect(this.info.tag).toBe(source);
+			expect(this.info.templateName).toBe("foo/bar");
+			expect(this.info.key).toBe("item");
 		});
 
 	});
@@ -197,101 +249,239 @@ describe("Template", function() {
 			expect(renderedSource).toEqual(expectedSource);
 		});
 
-		it("renders template includes", function() {
-			var data = {
-				title: "Testing"
-			};
-			var templateSource = [
-				'#{include test/render/includes}',
-				'<strong>#{title}</strong>'
-			].join("");
-			var includeSource = '<div>I am included!</div>';
-			var template = new Template("test/render/included_templates", templateSource);
-			Template.templates["test/render/includes"] = new Template("test/render/includes", includeSource);
-			var expectedSource = [
-				'<div>I am included!</div>',
-				'<strong>Testing</strong>'
-			].join("");
-			var renderedSource = template.render(data);
-			expect(renderedSource).toEqual(expectedSource);
+		describe("#{include}", function() {
+
+			it("renders template includes", function() {
+				var data = {
+					title: "Testing"
+				};
+				var templateSource = [
+					'#{include test/render/includes}',
+					'<strong>#{title}</strong>'
+				].join("");
+				var includeSource = '<div>I am included!</div>';
+				var template = new Template("test/render/included_templates", templateSource);
+				Template.templates["test/render/includes"] = new Template("test/render/includes", includeSource);
+				var expectedSource = [
+					'<div>I am included!</div>',
+					'<strong>Testing</strong>'
+				].join("");
+				var renderedSource = template.render(data);
+				expect(renderedSource).toEqual(expectedSource);
+			});
+
 		});
 
-		it("renders sub templates with data", function() {
-			var data = {
-				firstName: "John",
-				lastName: "Doe",
-				age: 30
-			};
-			var templateSource = [
-				'<h1>Person</h1>',
-				'#{render test/render/with_data}'
-			].join("");
-			var subTemplateSource = '#{firstName} #{lastName}, age #{age}';
-			var template = new Template("test/render/with_data_test", templateSource);
-			Template.templates["test/render/with_data"] = new Template("test/render/with_data", subTemplateSource);
-			var expectedSource = [
-				'<h1>Person</h1>',
-				'John Doe, age 30'
-			].join("");
+		describe("#{render}", function() {
 
-			var renderedSource = template.render(data);
-			expect(renderedSource).toEqual(expectedSource);
+			it("renders sub templates with data", function() {
+				var data = {
+					firstName: "John",
+					lastName: "Doe",
+					age: 30
+				};
+				var templateSource = [
+					'<h1>Person</h1>',
+					'#{render test/render/with_data}'
+				].join("");
+				var subTemplateSource = '#{firstName} #{lastName}, age #{age}';
+				var template = new Template("test/render/with_data_test", templateSource);
+				Template.templates["test/render/with_data"] = new Template("test/render/with_data", subTemplateSource);
+				var expectedSource = [
+					'<h1>Person</h1>',
+					'John Doe, age 30'
+				].join("");
+
+				var renderedSource = template.render(data);
+				expect(renderedSource).toEqual(expectedSource);
+			});
+
+			it("renders sub templates with a data key", function() {
+				var data = {
+					name: "Bob",
+					position: {
+						name: "The Builder",
+						id: 24
+					}
+				};
+				var templateSource = [
+					'Name: #{name}<br>',
+					'#{render test/render/position_template with position}'
+				].join("");
+				var subTemplateSource = [
+					'Position Name: #{name}<br>',
+					'Position Id: #{id}<br>'
+				].join("");
+				var template = new Template("test/render/sub_templates", templateSource);
+				Template.templates["test/render/position_template"] = new Template("test/render/position_template", subTemplateSource);
+				var expectedSource = [
+					'Name: Bob<br>',
+					'Position Name: The Builder<br>',
+					'Position Id: 24<br>'
+				].join("");
+				var renderedSource = template.render(data);
+				expect(renderedSource).toEqual(expectedSource);
+			});
+
+			it("renders sub templates with an array of data", function() {
+				var data = {
+					name: "Bob",
+					projects: [{
+						name: "Golden Gate Bridge",
+						budget: 10000000
+					},{
+						name: "The Pyramids",
+						budget: 450000000
+					}]
+				};
+				var templateSource = [
+					'Name: #{name}<br>',
+					'<ul>#{render test/render/projects with projects}</ul>'
+				].join("");
+				var subTemplateSource = '<li>#{name} (Cost: #{budget})</li>';
+				var template = new Template("test/render/sub_templates_array", templateSource);
+				Template.templates["test/render/projects"] = new Template("test/render/projects", subTemplateSource);
+				var expectedSource = [
+					'Name: Bob<br>',
+					'<ul>',
+						'<li>Golden Gate Bridge (Cost: 10000000)</li>',
+						'<li>The Pyramids (Cost: 450000000)</li>',
+					'</ul>'
+				].join("");
+				var renderedSource = template.render(data);
+				expect(renderedSource).toEqual(expectedSource);
+			});
+
 		});
 
-		it("renders sub templates with a data key", function() {
-			var data = {
-				name: "Bob",
-				position: {
-					name: "The Builder",
-					id: 24
-				}
-			};
-			var templateSource = [
-				'Name: #{name}<br>',
-				'#{render test/render/position_template with position}'
-			].join("");
-			var subTemplateSource = [
-				'Position Name: #{name}<br>',
-				'Position Id: #{id}<br>'
-			].join("");
-			var template = new Template("test/render/sub_templates", templateSource);
-			Template.templates["test/render/position_template"] = new Template("test/render/position_template", subTemplateSource);
-			var expectedSource = [
-				'Name: Bob<br>',
-				'Position Name: The Builder<br>',
-				'Position Id: 24<br>'
-			].join("");
-			var renderedSource = template.render(data);
-			expect(renderedSource).toEqual(expectedSource);
+		describe("#{render foreach}", function() {
+
+			beforeEach(function() {
+				Template.templates["products/item"] = new Template("products/item", [
+					'<p id="#{@loop.index}" class="#{@loop.iteration}">',
+						'#{name}<br>',
+						'#{price}',
+					'</p>'
+				].join(""));
+			});
+
+			it("renders sub templates once for each key", function() {
+				var template = new Template();
+				template.source = "#{render products/item foreach}";
+				var data = {
+					a: {
+						name: "Test",
+						price: 12.99
+					},
+					b: {
+						name: "Testing",
+						price: 2.5
+					}
+				};
+				var result = template.render(data);
+				var expected = [
+					'<p id="a" class="even">',
+						'Test<br>',
+						'12.99',
+					'</p>',
+					'<p id="b" class="odd">',
+						'Testing<br>',
+						'2.5',
+					'</p>'
+				].join("");
+
+				expect(result).toBe(expected)
+			});
+
+			it("renders sub templates once for each index", function() {
+				var template = new Template();
+				template.source = "#{render products/item foreach products}";
+
+				var data = {
+					products: [{
+						name: "Test",
+						price: 12.99
+					},{
+						name: "Testing",
+						price: 2.5
+					}]
+				};
+
+				var result = template.render(data);
+
+				var expected = [
+					'<p id="0" class="even">',
+						'Test<br>',
+						'12.99',
+					'</p>',
+					'<p id="1" class="odd">',
+						'Testing<br>',
+						'2.5',
+					'</p>'
+				].join("");
+
+				expect(result).toBe(expected);
+			});
+
 		});
 
-		it("renders sub templates with an array of data", function() {
+		it("properly renders all tags in the same template", function() {
+			Template.templates["blog/logo"] = new Template("blog/logo", "<h1>Test Blog</h1>");
+
+			Template.templates["blog/tags"] = new Template("blog/tags", '<li id="tag-#{@loop.index}">#{name}</li>');
+
+			Template.templates["blog/comments"] = new Template("blog/comments", '<li id="comment-#{@loop.index}" class="#{@loop.iteration}">#{text} - #{name}</li>');
+
+			Template.templates["blog/post"] = new Template("blog/post", [
+				'#{include blog/logo}',
+				'<article>',
+					'<h2>#{title}</h2>',
+					'<div>#{body}</div>',
+					'<ul>',
+						'#{render blog/tags foreach tags}',
+					'</ul>',
+					'<ol>',
+						'#{render blog/comments with comments}',
+					'</ol>',
+				'</article>'
+			].join(""));
+
 			var data = {
-				name: "Bob",
-				projects: [{
-					name: "Golden Gate Bridge",
-					budget: 10000000
+				title: "Just Testing",
+				body: "Just a test.",
+				tags: [{
+					name: "test"
 				},{
-					name: "The Pyramids",
-					budget: 450000000
+					name: "foo"
+				}],
+				comments: [{
+					name: "John Doe",
+					text: "You're wrong!"
+				},{
+					name: "Anonymous Coward",
+					text: "No YOU'RE wrong!"
 				}]
 			};
-			var templateSource = [
-				'Name: #{name}<br>',
-				'<ul>#{render test/render/projects with projects}</ul>'
+
+			var result = Template.find("blog/post").render(data);
+
+			var expected = [
+				'<h1>Test Blog</h1>',
+				'<article>',
+					'<h2>Just Testing</h2>',
+					'<div>Just a test.</div>',
+					'<ul>',
+						'<li id="tag-0">test</li>',
+						'<li id="tag-1">foo</li>',
+					'</ul>',
+					'<ol>',
+						'<li id="comment-0" class="even">You\'re wrong! - John Doe</li>',
+						'<li id="comment-1" class="odd">No YOU\'RE wrong! - Anonymous Coward</li>',
+					'</ol>',
+				'</article>'
 			].join("");
-			var subTemplateSource = '<li>#{name} (Cost: #{budget})</li>';
-			var template = new Template("test/render/sub_templates_array", templateSource);
-			Template.templates["test/render/projects"] = new Template("test/render/projects", subTemplateSource);
-			var expectedSource = [
-				'Name: Bob<br>',
-				'<ul>',
-					'<li>Golden Gate Bridge (Cost: 10000000)</li>',
-					'<li>The Pyramids (Cost: 450000000)</li>',
-				'</ul>'
-			].join("");
-			var renderedSource = template.render(data);
-			expect(renderedSource).toEqual(expectedSource);
+
+			expect(result).toBe(expected);
 		});
 
 	});

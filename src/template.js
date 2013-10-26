@@ -28,15 +28,46 @@ Template.prototype = {
 	constructor: Template,
 
 	render: function render(data) {
-		var key, source = this.source, regexRender = Template.REGEX_RENDER, regexInclude = Template.REGEX_INCLUDE;
+		var source = this.source
+			// #{include foo/bar}
+			.replace(Template.REGEX_INCLUDE, function includeReplacer(tag, templateName) {
+				return Template.find(templateName).render(data);
+			})
+			// #{render foo/bar foreach} (renders the template for each key in data)
+			// #{render foo/bar foreach baz} (renders the template for each key in data.baz)
+			.replace(Template.REGEX_FOREACH, function foreachReplacer(tag, templateName, dataKeyWithSpace, dataKey) {
+				var renderData = (!dataKey) ? data : data[ dataKey ],
+				    buffer = [],
+				    i = 0,
+				    length = renderData.length,
+				    template = Template.find(templateName),
+				    str, iteration, key;
 
-		var renderReplacer = function(tag, templateName, withClause, dataKey) {
-			var renderData = (!dataKey) ? data : data[ dataKey ];
-			if (renderData instanceof Array) {
-				var buffer = [], i = 0, length = renderData.length, template = Template.find(templateName), str;
+				if (renderData instanceof Array) {
+					for (i; i < length; i++) {
+						iteration = (i % 2 === 0) ? "even" : "odd";
 
-				for (i; i < length; i++) {
-					buffer.push( template.render( renderData[i] ) );
+						buffer.push(
+							template.render( renderData[i] )
+								.replace(/#\{@loop.index\}/g, i)
+								.replace(/#\{@loop.iteration\}/g, iteration)
+						);
+					}
+				}
+				else {
+					i = 0;
+
+					for (key in renderData) {
+						if (renderData.hasOwnProperty(key)) {
+							iteration = (i++ % 2 === 0) ? "even" : "odd";
+
+							buffer.push(
+								template.render( renderData[key] )
+									.replace(/#\{@loop.index\}/g, key)
+									.replace(/#\{@loop.iteration\}/g, iteration)
+							);
+						}
+					}
 				}
 
 				str = buffer.join("");
@@ -44,52 +75,44 @@ Template.prototype = {
 				template = buffer = null;
 
 				return str;
-			}
-			else {
-				return Template.find(templateName).render( renderData );
-			}
-		};
+			})
+			// #{render foo/bar} (uses data as the context)
+			// #{render foo/bar with baz} (uses the object at data.baz as the context)
+			.replace(Template.REGEX_RENDER, function renderReplacer(tag, templateName, withClause, dataKey) {
+				var renderData = (!dataKey) ? data : data[ dataKey ];
 
-		var includeReplacer = function(tag, templateName) {
-			return Template.find(templateName).render(data);
-		};
+				if (renderData instanceof Array) {
+					var buffer = [],
+					    i = 0,
+					    length = renderData.length,
+					    template = Template.find(templateName),
+					    str, iteration;
 
-		var doReplace = function(key) {
-			var regex = new RegExp("#\\{\\s*" + key.replace(/\./g, "\\\.", "g") + "\\s*\\}", "g");
+					for (i; i < length; i++) {
+						iteration = (i % 2 === 0) ? "even" : "odd";
 
-			// replace #{foo} tags with value at data[foo]
-			source = source.replace(regex, data[key] || "");
+						buffer.push(
+							template.render( renderData[i] )
+								.replace(/#\{@loop.index\}/g, i)
+								.replace(/#\{@loop.iteration\}/g, iteration)
+						);
+					}
 
-			// replace #{render with foo} tags by rendering data[foo]
-			if (source.match(regexRender)) {
-				source = source.replace(regexRender, renderReplacer);
-			}
+					str = buffer.join("");
 
-			// replace #{include} tags
-			if (source.match(Template.templates[name])) {
-				source = source.replace(regexInclude, includeReplacer);
-			}
-		};
+					template = buffer = null;
 
-		if (data.getTemplateKeys) {
-			var keys = data.getTemplateKeys(), i = 0, length = keys.length;
-
-			for (i; i < length; i++) {
-				doReplace(keys[i]);
-			}
-		}
-		else {
-			for (key in data) {
-				if (data.hasOwnProperty(key)) {
-					doReplace(key);
+					return str;
 				}
-			}
-		}
+				else {
+					return Template.find(templateName).render( renderData );
+				}
+			})
+			.replace(/#\{\s*([-\w.]+)\s*\}/g, function keyReplacer(tag, key) {
+				return data.hasOwnProperty(key) ? data[key] : "";
+			});
 
-		// clean up unmatched template tags
-		source = source.replace(/#\{.+?\}/g, "");
-
-		data = regexRender = regexInclude = renderReplacer = renderInclude = null;
+		data = null;
 
 		return source;
 	},
@@ -108,18 +131,18 @@ Template.prototype = {
 
 };
 
+Template.REGEX_RENDER = /#\{\s*render\s+(.+?)(\s+with\s+(.*?)\s*)?\}/g;
+Template.REGEX_INCLUDE = /#\{\s*include\s+(.+?)\s*\}/g;
+Template.REGEX_FOREACH = /#\{\s*render\s+(.+?)\s+foreach(\s+([^\s}]+))?\s*\}/g;
+
 Template.cacheBuster = new Date().getTime();
 
 Template.document = window.document;
 
-Template.REGEX_INCLUDE = /#\{\s*include\s+(.+?)\s*\}/g;
-
-Template.REGEX_RENDER = /#\{\s*render\s+(.+?)(\s+with\s+(.*?)\s*)?\}/g;
-
 Template.templates = {};
 
 Template.fetch = function fetch(name, context, callback) {
-	if (Template.templates[name]) {
+	if (Template.find(name)) {
 		callback.call(context, Template.templates[name]);
 	}
 	else {
@@ -212,7 +235,15 @@ Template.find = function find(name) {
 };
 
 Template.getTemplateSourceNode = function getTemplateSourceNode(name) {
-	var source = Template.document.querySelector("script[data-template-name=" + name.replace(/\//g, "\\/") + "]");
+	var scripts = Template.document.getElementsByTagName("script"),
+	    i = 0, source;
+
+	for (i; i < scripts.length; i++) {
+		if (scripts[i].getAttribute("data-template-name") === name) {
+			source = scripts[i].innerHTML;
+			break;
+		}
+	}
 
 	if (!source) {
 		throw new Error('Missing template ' + name + '. Required: <script type="text/html" data-template-name="' + name + '"></script>');
@@ -237,6 +268,10 @@ Template.parseHTML = function parseHTML(html) {
 	node = div = null;
 
 	return nodes;
+};
+
+Template.register = function register(template) {
+	Template.templates[ template.name ] = template;
 };
 
 Template.render = function render(name, data, context, callback) {
