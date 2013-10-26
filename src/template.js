@@ -206,11 +206,16 @@ Template.fetchSubTemplates = function fetchSubTemplates(source, callback) {
 		}
 	};
 
-	source.replace(this.REGEX_RENDER, function(tag, templateName, dataKey) {
-		subTemplates.push(templateName);
-	}).replace(this.REGEX_INCLUDE, function(tag, templateName) {
-		subTemplates.push(templateName);
-	});
+	source
+		.replace(this.REGEX_FOREACH, function(tag, templateName) {
+			subTemplates.push(templateName);
+		})
+		.replace(this.REGEX_RENDER, function(tag, templateName, dataKey) {
+			subTemplates.push(templateName);
+		})
+		.replace(this.REGEX_INCLUDE, function(tag, templateName) {
+			subTemplates.push(templateName);
+		});
 
 	total = subTemplates.length;
 
