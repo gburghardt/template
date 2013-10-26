@@ -2,6 +2,14 @@
 <html>
 <head>
 	<title>Demo: Template</title>
+	<style type="text/css">
+		.even	 {
+			background-color: #f0f0f0;
+		}
+		.odd {
+			background-color: #d0d0d0;
+		}
+	</style>
 </head>
 <body>
 	<div id="blog-post"></div>
@@ -16,7 +24,23 @@
 	</script>
 
 	<script type="text/html" data-template-name="blog/comments">
-		<li>#{text} - #{name}</li>
+		<li id="comment-#{@loop.index}" class="#{@loop.iteration}">#{text} - #{name}</li>
+	</script>
+
+	<script type="text/html" data-template-name="blog/comment_table_header">
+		<thead>
+			<tr>
+				<th>Text</th>
+				<th>Name</th>
+			</tr>
+		</thead>
+	</script>
+
+	<script type="text/html" data-template-name="blog/comment_table">
+		<tr id="comment-#{@loop.index}" class="#{@loop.iteration}">
+			<td>#{text}</td>
+			<td>#{name}</td>
+		</tr>
 	</script>
 
 	<script type="text/html" data-template-name="blog/post">
@@ -29,6 +53,14 @@
 			<ol>
 				#{render blog/comments foreach comments}
 			</ol>
+
+			<table>
+				<caption>Comments</caption>
+				#{include blog/comment_table_header}
+				<tbody>
+					#{render blog/comment_table foreach comments}
+				</tbody>
+			</table>
 		</article>
 	</script>
 
