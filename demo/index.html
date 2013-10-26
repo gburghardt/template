@@ -7,30 +7,30 @@
 	<div id="blog-post"></div>
 
 	<script type="text/html" data-template-name="blog/logo">
-        <h1>My Spiffy Blog!</h1>
-    </script>
+		<h1>My Spiffy Blog!</h1>
+	</script>
 
-    <script type="text/html" data-template-name="blog/post_details">
-        <h2>#{title}</h2>
-        <div>#{body}</div>
-    </script>
+	<script type="text/html" data-template-name="blog/post_details">
+		<h2>#{title}</h2>
+		<div>#{body}</div>
+	</script>
 
-    <script type="text/html" data-template-name="blog/comments">
-        <li>#{text} - #{name}</li>
-    </script>
+	<script type="text/html" data-template-name="blog/comments">
+		<li>#{text} - #{name}</li>
+	</script>
 
-    <script type="text/html" data-template-name="blog/post">
-        #{include blog/logo}
+	<script type="text/html" data-template-name="blog/post">
+		#{include blog/logo}
 
-        <article>
-            #{render blog/post_details with post}
+		<article>
+			#{render blog/post_details with post}
 
-            <h3>Comments:</h3>
-            <ol>
-                #{render blog/comments foreach comments}
-            </ol>
-        </article>
-    </script>
+			<h3>Comments:</h3>
+			<ol>
+				#{render blog/comments foreach comments}
+			</ol>
+		</article>
+	</script>
 
 	<script type="text/javascript" src="../src/template.js"></script>
 	<script type="text/javascript">

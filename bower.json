@@ -1,7 +1,7 @@
 {
 	"name": "template",
 	"description": "Template provides basic templating functionality in JavaScript, including iterating over arrays and rendering sub templates that are embedded or fetched via AJAX.",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"homepage": "https://github.com/gburghardt/template",
 	"authors": [
 		"Greg Burghardt <greg_burghardt@yahoo.com>"
