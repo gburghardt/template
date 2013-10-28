@@ -39,7 +39,9 @@ Templates may be downloaded as they are used for rendering by keeping
 the source code for the template in text files on the server, and
 placing a `<script>` tag like the one below in your HTML file:
 
-    <script type="text/html" data-template-name="blogs/post" data-src="/views/blogs/post.html.tpl"></script>
+    <script type="text/html"
+        data-template-name="blogs/post"
+        data-src="/views/blogs/post.html.tpl"></script>
 
 The `data-src` attribute is used to hold a relative URL to the
 template file that should be downloaded upon rendering. As we'll see
