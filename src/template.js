@@ -118,7 +118,10 @@ Template.prototype = {
 	},
 
 	setSource: function setSource(source) {
-		if (typeof source === "string") {
+		if (!source) {
+			throw new Error("Missing required argument: source");
+		}
+		else if (typeof source === "string") {
 			this.source = source;
 		}
 		else {
