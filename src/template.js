@@ -137,6 +137,11 @@ Template.prototype = {
 		}
 
 		source = null;
+	},
+
+	setViewResolver: function setViewResolver(viewResolver) {
+		this.viewResolver = viewResolver;
+		viewResolver = null;
 	}
 
 };
