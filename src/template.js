@@ -24,29 +24,21 @@ Template.REGEX_RENDER = /#\{\s*render\s+(.+?)(\s+with\s+(.*?)\s*)?\}/g;
 Template.REGEX_INCLUDE = /#\{\s*include\s+(.+?)\s*\}/g;
 Template.REGEX_FOREACH = /#\{\s*render\s+(.+?)\s+foreach(\s+([^\s}]+))?\s*\}/g;
 
-Template.viewResolver = null;
-
-Template.find = function find(name) {
-	if (!this.viewResolver) {
-		throw new Error("No view resolver found.");
-	}
-
-	return this.viewResolver.find(name);
-};
-
 Template.prototype = {
 
 	name: null,
 
 	source: null,
 
+	viewResolver: null,
+
 	constructor: Template,
 
 	render: function render(data) {
-		var source = this.source
+		var self = this, source = this.source
 			// #{include foo/bar}
 			.replace(Template.REGEX_INCLUDE, function includeReplacer(tag, templateName) {
-				return Template.find(templateName).render(data);
+				return self.viewResolver.find(templateName).render(data);
 			})
 			// #{render foo/bar foreach} (renders the template for each key in data)
 			// #{render foo/bar foreach baz} (renders the template for each key in data.baz)
@@ -55,7 +47,7 @@ Template.prototype = {
 				    buffer = [],
 				    i = 0,
 				    length = renderData.length,
-				    template = Template.find(templateName),
+				    template = self.viewResolver(templateName),
 				    str, iteration, key;
 
 				if (renderData instanceof Array) {
@@ -100,7 +92,7 @@ Template.prototype = {
 					var buffer = [],
 					    i = 0,
 					    length = renderData.length,
-					    template = Template.find(templateName),
+					    template = self.viewResolver(templateName),
 					    str, iteration;
 
 					for (i; i < length; i++) {
@@ -120,14 +112,14 @@ Template.prototype = {
 					return str;
 				}
 				else {
-					return Template.find(templateName).render( renderData );
+					return self.viewResolver(templateName).render( renderData );
 				}
 			})
 			.replace(/#\{\s*([-\w.]+)\s*\}/g, function keyReplacer(tag, key) {
 				return data.hasOwnProperty(key) ? data[key] : "";
 			});
 
-		data = null;
+		data = self = null;
 
 		return source;
 	},
