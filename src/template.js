@@ -35,10 +35,10 @@ Template.prototype = {
 	constructor: Template,
 
 	render: function render(data) {
-		var self = this, source = this.source
+		var viewResolver = this.viewResolver, source = this.source
 			// #{include foo/bar}
 			.replace(Template.REGEX_INCLUDE, function includeReplacer(tag, templateName) {
-				return self.viewResolver.find(templateName).render(data);
+				return viewResolver.find(templateName).render(data);
 			})
 			// #{render foo/bar foreach} (renders the template for each key in data)
 			// #{render foo/bar foreach baz} (renders the template for each key in data.baz)
@@ -47,7 +47,7 @@ Template.prototype = {
 				    buffer = [],
 				    i = 0,
 				    length = renderData.length,
-				    template = self.viewResolver(templateName),
+				    template = viewResolver.find(templateName),
 				    str, iteration, key;
 
 				if (renderData instanceof Array) {
@@ -92,7 +92,7 @@ Template.prototype = {
 					var buffer = [],
 					    i = 0,
 					    length = renderData.length,
-					    template = self.viewResolver(templateName),
+					    template = viewResolver.find(templateName),
 					    str, iteration;
 
 					for (i; i < length; i++) {
@@ -112,14 +112,14 @@ Template.prototype = {
 					return str;
 				}
 				else {
-					return self.viewResolver(templateName).render( renderData );
+					return viewResolver.find(templateName).render( renderData );
 				}
 			})
 			.replace(/#\{\s*([-\w.]+)\s*\}/g, function keyReplacer(tag, key) {
 				return data.hasOwnProperty(key) ? data[key] : "";
 			});
 
-		data = self = null;
+		data = null;
 
 		return source;
 	},
